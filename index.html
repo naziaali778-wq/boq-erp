@@ -42,6 +42,9 @@
   .tab { flex:0 0 auto; padding:11px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--card); color:var(--text); font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; text-align:left; display:flex; align-items:center; gap:9px; box-shadow:var(--shadow-sm); transition:transform .12s ease,box-shadow .12s ease,background .12s ease; text-transform:uppercase; letter-spacing:.03em; }
   .tab:hover { transform:translateX(2px); border-color:var(--accent); }
   .tab.active { background:var(--accent2); color:#fff; border-color:var(--accent2); box-shadow:0 6px 16px -6px rgba(61,74,69,.5); border-left:3px solid var(--accent); }
+  .boq-subtab { flex:0 0 auto; padding:9px 14px; border-radius:999px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; box-shadow:var(--shadow-sm); transition:background .12s ease; text-transform:uppercase; letter-spacing:.03em; }
+  .boq-subtab:hover { border-color:var(--accent); }
+  .boq-subtab.active { background:var(--accent2); color:#fff; border-color:var(--accent2); }
   .content-area { flex:1 1 0; min-width:0; }
   .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px; margin-bottom:16px; box-shadow:var(--shadow); border-top:3px solid var(--accent2); }
   .card h2 { font-size:13.5px; margin:0 0 14px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; color:var(--accent2); }
@@ -218,17 +221,46 @@
 
   <!-- ROOMS TAB -->
   <div id="tab-rooms" style="display:none">
-    <div class="card">
-      <h2>Add Room <span class="n">4 walls, choose a finish for each wall</span></h2>
-      <div class="grid g3">
-        <div class="field"><label>Room Name</label><input type="text" id="newRoomName" placeholder="e.g. Bedroom 1"></div>
-        <div class="field"><label>Floor Area (sqft)</label><input type="number" id="newFloorArea" placeholder="120"></div>
-        <div class="field"><label>Default Wall Height (ft)</label><input type="number" id="newHeight" value="10"></div>
-      </div>
-      <button class="btn full" onclick="addRoom()">+ Add Room</button>
+    <div class="tabs no-print" style="flex-direction:row;position:static;margin-bottom:14px">
+      <button class="boq-subtab active" data-rv="gray" onclick="switchRoomsView('gray')" style="background:var(--accent2);color:#fff;border-color:var(--accent2)">🧱 GRAY STRUCTURE ROOMS</button>
+      <button class="boq-subtab" data-rv="interior" onclick="switchRoomsView('interior')">🛋 INTERIOR ROOMS</button>
     </div>
-    <div id="roomsList"></div>
+
+    <div id="roomsGraySection">
+      <div class="card" style="border-top-color:var(--accent2)">
+        <h2 style="color:var(--accent2)">🧱 Add Gray Structure Room <span class="n">brick, plaster, slab, floor base — no finishes here</span></h2>
+        <div class="grid g3">
+          <div class="field"><label>Room Name</label><input type="text" id="newRoomNameGray" placeholder="e.g. Bedroom 1"></div>
+          <div class="field"><label>Room Length (ft)</label><input type="number" id="newRoomLengthGray" placeholder="e.g. 12" oninput="autoCalcNewRoomArea('gray')"></div>
+          <div class="field"><label>Room Width (ft)</label><input type="number" id="newRoomWidthGray" placeholder="e.g. 10" oninput="autoCalcNewRoomArea('gray')"></div>
+        </div>
+        <div class="grid g3">
+          <div class="field"><label>Floor Area (sqft) <span class="n">auto from L×W, or type your own</span></label><input type="number" id="newFloorAreaGray" placeholder="120"></div>
+          <div class="field"><label>Default Wall Height (ft)</label><input type="number" id="newHeightGray" value="10"></div>
+        </div>
+        <button class="btn full" onclick="addRoom('gray')">🧱 + Add Gray Structure Room</button>
+      </div>
+      <div id="roomsListGray"></div>
+    </div>
+
+    <div id="roomsInteriorSection" style="display:none">
+      <div class="card" style="border-top-color:var(--accent)">
+        <h2 style="color:var(--accent)">🛋 Add Interior Room <span class="n">finishes, ceiling, skirting, electrical — no gray items here</span></h2>
+        <div class="grid g3">
+          <div class="field"><label>Room Name</label><input type="text" id="newRoomNameInterior" placeholder="e.g. Bedroom 1"></div>
+          <div class="field"><label>Room Length (ft)</label><input type="number" id="newRoomLengthInterior" placeholder="e.g. 12" oninput="autoCalcNewRoomArea('interior')"></div>
+          <div class="field"><label>Room Width (ft)</label><input type="number" id="newRoomWidthInterior" placeholder="e.g. 10" oninput="autoCalcNewRoomArea('interior')"></div>
+        </div>
+        <div class="grid g3">
+          <div class="field"><label>Floor Area (sqft) <span class="n">auto from L×W, or type your own</span></label><input type="number" id="newFloorAreaInterior" placeholder="120"></div>
+          <div class="field"><label>Default Wall Height (ft)</label><input type="number" id="newHeightInterior" value="10"></div>
+        </div>
+        <button class="btn full" onclick="addRoom('interior')">🛋 + Add Interior Room</button>
+      </div>
+      <div id="roomsListInterior"></div>
+    </div>
   </div>
+
 
   <!-- RATES TAB -->
   <div id="tab-rates" style="display:none">
@@ -249,9 +281,15 @@
 
   <!-- BOQ TAB -->
   <div id="tab-boq" style="display:none">
-    <div class="btn-row no-print" style="margin-bottom:14px">
-      <button class="btn secondary" onclick="exportCSV()">⬇ Export CSV</button>
+    <div class="btn-row no-print" style="margin-bottom:10px">
+      <button class="btn secondary" onclick="exportCSV()">⬇ Export CSV (<span id="exportViewLabel">All</span>)</button>
       <button class="btn secondary" onclick="window.print()">🖨 Print / Save PDF</button>
+    </div>
+    <div class="tabs no-print" style="flex-direction:row;position:static;margin-bottom:14px">
+      <button class="boq-subtab active" data-boq="all" onclick="switchBoqView('all')">📋 All</button>
+      <button class="boq-subtab" data-boq="gray" onclick="switchBoqView('gray')">🧱 Gray Structure BOQ</button>
+      <button class="boq-subtab" data-boq="interior" onclick="switchBoqView('interior')">🛋 Interior BOQ</button>
+      <button class="boq-subtab" data-boq="custom" onclick="switchBoqView('custom')">✎ Custom Items BOQ</button>
     </div>
     <div class="card" id="boqCard">
       <div class="letterhead" id="letterheadOut"></div>
@@ -307,6 +345,52 @@ const CEILING_OPTIONS = [
   { v: 'custom', l: '✎ Custom / Type your own' },
 ];
 
+const WALL_FINISH_RATE_KEY = { paint:'paint', texture:'texture', glass:'glass', wood:'wood', wallpaper:'wallpaper', tile:'tile', pop:'pop' };
+const FLOOR_FINISH_RATE_KEY = { tile:'floortile', marble:'marble', woodfloor:'woodfloor', vinyl:'vinyl', epoxy:'epoxy' };
+const CEIL_FINISH_RATE_KEY = { gypsum:'gypsum', pop:'popceil', paint:'ceilpaint' };
+
+function rateLabel(key) {
+  const r = state.rates[key];
+  if (!r) return '';
+  return `PKR ${r.rate.toLocaleString()}/${r.unit}`;
+}
+function rateBadgeHTML(key) {
+  const r = state.rates[key];
+  if (!r) return '';
+  return `<span class="badge" style="cursor:pointer" title="Click to change just this rate" onclick="editRateInline('${key}')">✎ ${rateLabel(key)}</span>`;
+}
+function editRateInline(key) {
+  const r = state.rates[key];
+  if (!r) return;
+  const val = prompt(`Set rate for "${r.name}" (per ${r.unit}):`, r.rate);
+  if (val === null) return;
+  const num = parseFloat(val);
+  if (isNaN(num) || num < 0) { alert('Enter a valid number.'); return; }
+  state.rates[key].rate = num;
+  saveToStorage();
+  renderRates();
+  renderRooms();
+  if (document.getElementById('tab-boq').style.display !== 'none') renderBOQ();
+}
+function wallFinishRateHTML(finish) {
+  if (finish === 'none') return '';
+  if (finish === 'custom') return `<span class="badge">Custom rate — set below</span>`;
+  const key = WALL_FINISH_RATE_KEY[finish];
+  return key ? rateBadgeHTML(key) : '';
+}
+function floorFinishRateHTML(finish) {
+  if (finish === 'none') return '';
+  if (finish === 'custom') return `<span class="badge">Custom rate — set below</span>`;
+  const key = FLOOR_FINISH_RATE_KEY[finish];
+  return key ? rateBadgeHTML(key) : '';
+}
+function ceilFinishRateHTML(finish) {
+  if (finish === 'none') return '';
+  if (finish === 'custom') return `<span class="badge">Custom rate — set below</span>`;
+  const key = CEIL_FINISH_RATE_KEY[finish];
+  return key ? rateBadgeHTML(key) : '';
+}
+
 const DEFAULT_RATES = {
   brick: { name: 'Brickwork', unit: 'cft', rate: 130, group: 'gray' },
   plaster: { name: 'Plaster (cement sand)', unit: 'sft', rate: 55, group: 'gray' },
@@ -349,10 +433,11 @@ function currentProject() {
   return state.projects.find(p => p.id === state.currentProjectId) || state.projects[0];
 }
 
-function emptyRoom(name, floorArea, height) {
+function emptyRoom(name, floorArea, height, stage) {
   return {
     id: 'r' + Date.now() + Math.random().toString(36).slice(2, 6),
     name: name || 'Room',
+    stage: stage || 'both',
     floorArea: floorArea || 0,
     thickness: 9,
     slabInclude: true,
@@ -363,7 +448,7 @@ function emptyRoom(name, floorArea, height) {
     electricalPoints: 6,
     furnitureWood: 0,
     walls: WALL_LABELS.map(() => ({
-      length: 0, height: height || 10, opening: 0, includeGray: true, finish: 'paint'
+      length: 0, height: height || 10, opening: 0, includeGray: true, finish: 'paint', extras: []
     })),
   };
 }
@@ -633,14 +718,37 @@ function updateRate(key, val) {
 }
 
 // ---------- ROOMS ----------
-function addRoom() {
+let roomsView = 'gray';
+function switchRoomsView(view) {
+  roomsView = view;
+  document.querySelectorAll('[data-rv]').forEach(b => {
+    const active = b.dataset.rv === view;
+    b.classList.toggle('active', active);
+    b.style.background = active ? (view === 'gray' ? 'var(--accent2)' : 'var(--accent)') : '';
+    b.style.color = active ? '#fff' : '';
+    b.style.borderColor = active ? (view === 'gray' ? 'var(--accent2)' : 'var(--accent)') : '';
+  });
+  document.getElementById('roomsGraySection').style.display = view === 'gray' ? '' : 'none';
+  document.getElementById('roomsInteriorSection').style.display = view === 'interior' ? '' : 'none';
+}
+
+function autoCalcNewRoomArea(view) {
+  const l = parseFloat(document.getElementById('newRoomLength' + (view === 'gray' ? 'Gray' : 'Interior')).value) || 0;
+  const w = parseFloat(document.getElementById('newRoomWidth' + (view === 'gray' ? 'Gray' : 'Interior')).value) || 0;
+  if (l > 0 && w > 0) document.getElementById('newFloorArea' + (view === 'gray' ? 'Gray' : 'Interior')).value = (l * w).toFixed(1);
+}
+function addRoom(stage) {
+  const suf = stage === 'gray' ? 'Gray' : 'Interior';
   const p = currentProject();
-  const name = document.getElementById('newRoomName').value.trim() || ('Room ' + (p.rooms.length + 1));
-  const floorArea = parseFloat(document.getElementById('newFloorArea').value) || 0;
-  const height = parseFloat(document.getElementById('newHeight').value) || 10;
-  p.rooms.push(emptyRoom(name, floorArea, height));
-  document.getElementById('newRoomName').value = '';
-  document.getElementById('newFloorArea').value = '';
+  const roomsOfStage = p.rooms.filter(r => r.stage === stage);
+  const name = document.getElementById('newRoomName' + suf).value.trim() || ('Room ' + (roomsOfStage.length + 1));
+  const floorArea = parseFloat(document.getElementById('newFloorArea' + suf).value) || 0;
+  const height = parseFloat(document.getElementById('newHeight' + suf).value) || 10;
+  p.rooms.push(emptyRoom(name, floorArea, height, stage));
+  document.getElementById('newRoomName' + suf).value = '';
+  document.getElementById('newRoomLength' + suf).value = '';
+  document.getElementById('newRoomWidth' + suf).value = '';
+  document.getElementById('newFloorArea' + suf).value = '';
   saveToStorage();
   renderRooms();
 }
@@ -653,13 +761,26 @@ function removeRoom(id) {
 function findRoom(id) { return currentProject().rooms.find(r => r.id === id); }
 
 function renderRooms() {
-  const wrap = document.getElementById('roomsList');
   const rooms = currentProject().rooms;
-  if (rooms.length === 0) { wrap.innerHTML = '<div class="empty">Add rooms first — they belong to the currently active project.</div>'; return; }
-  wrap.innerHTML = rooms.map(r => roomCardHTML(r)).join('');
+  const grayRooms = rooms.filter(r => r.stage === 'gray' || r.stage === 'both');
+  const interiorRooms = rooms.filter(r => r.stage === 'interior' || r.stage === 'both');
+
+  const grayWrap = document.getElementById('roomsListGray');
+  grayWrap.innerHTML = grayRooms.length === 0
+    ? '<div class="empty">Abhi koi Gray Structure room nahi. Upar se add karein.</div>'
+    : grayRooms.map(r => roomCardHTML(r, 'gray')).join('');
+
+  const interiorWrap = document.getElementById('roomsListInterior');
+  interiorWrap.innerHTML = interiorRooms.length === 0
+    ? '<div class="empty">Abhi koi Interior room nahi. Upar se add karein.</div>'
+    : interiorRooms.map(r => roomCardHTML(r, 'interior')).join('');
 }
 
-function roomCardHTML(r) {
+function roomCardHTML(r, view) {
+  const showGray = view === 'gray';
+  const showInterior = view === 'interior';
+  const stageColor = showGray ? 'var(--accent2)' : 'var(--accent)';
+
   const floorOpts = FLOOR_OPTIONS.map(o => `<option value="${o.v}" ${r.floorFinish===o.v?'selected':''}>${o.l}</option>`).join('');
   const ceilOpts = CEILING_OPTIONS.map(o => `<option value="${o.v}" ${r.ceilingFinish===o.v?'selected':''}>${o.l}</option>`).join('');
   const wallsHTML = r.walls.map((w, i) => {
@@ -671,44 +792,85 @@ function roomCardHTML(r) {
         <div><label>Length (ft)</label><input type="number" value="${w.length}" onchange="updateWall('${r.id}',${i},'length',this.value)"></div>
         <div><label>Height (ft)</label><input type="number" value="${w.height}" onchange="updateWall('${r.id}',${i},'height',this.value)"></div>
       </div>
+      ${showGray ? `
       <div class="row2">
         <div><label>Opening ded. (sqft)</label><input type="number" value="${w.opening}" onchange="updateWall('${r.id}',${i},'opening',this.value)"></div>
-        <div><label>Finish</label><select onchange="updateWall('${r.id}',${i},'finish',this.value)">${fOpts}</select></div>
       </div>
-      <div class="checkrow"><input type="checkbox" ${w.includeGray?'checked':''} onchange="updateWall('${r.id}',${i},'includeGray',this.checked)"><label style="margin:0">Include Brick + Plaster (gray structure)</label></div>
+      <div class="checkrow"><input type="checkbox" ${w.includeGray?'checked':''} onchange="updateWall('${r.id}',${i},'includeGray',this.checked)"><label style="margin:0">Include Brick + Plaster</label>${w.includeGray?`${rateBadgeHTML('brick')}${rateBadgeHTML('plaster')}`:''}</div>` : ''}
+      ${showInterior ? `
+      <div class="row2">
+        <div><label>Opening ded. (sqft)</label><input type="number" value="${w.opening}" onchange="updateWall('${r.id}',${i},'opening',this.value)"></div>
+        <div><label>Finish</label><select onchange="updateWall('${r.id}',${i},'finish',this.value)">${fOpts}</select>${wallFinishRateHTML(w.finish)}</div>
+      </div>
       ${w.finish === 'custom' ? `
       <div class="row2">
         <div><label>Custom Finish Name</label><input type="text" value="${w.customFinishName||''}" placeholder="e.g. Stone Cladding" onchange="updateWall('${r.id}',${i},'customFinishName',this.value)"></div>
         <div><label>Rate (PKR/sft)</label><input type="number" value="${w.customFinishRate||''}" placeholder="0" onchange="updateWall('${r.id}',${i},'customFinishRate',this.value)"></div>
-      </div>` : ''}
+      </div>` : ''}` : ''}
+      <div style="font-size:10px;font-weight:700;color:var(--sub);margin-top:9px;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;border-top:1px dashed var(--border);padding-top:7px">Extra Items on this wall <span style="font-weight:500;text-transform:none;letter-spacing:0">(agar 1 wall par kai kaam hon)</span></div>
+      ${(w.extras || []).map(ex => `
+      <div class="row2" style="margin-bottom:4px">
+        <div><input type="text" value="${ex.name}" placeholder="e.g. Wood Paneling" onchange="updateWallExtra('${r.id}',${i},'${ex.id}','name',this.value)"></div>
+        <div><input type="number" value="${ex.qty}" placeholder="Qty" onchange="updateWallExtra('${r.id}',${i},'${ex.id}','qty',this.value)"></div>
+      </div>
+      <div class="row2" style="margin-bottom:8px">
+        <div><select onchange="updateWallExtra('${r.id}',${i},'${ex.id}','unit',this.value)">
+          <option value="sft" ${ex.unit==='sft'?'selected':''}>sft</option>
+          <option value="rft" ${ex.unit==='rft'?'selected':''}>rft</option>
+          <option value="nos" ${ex.unit==='nos'?'selected':''}>nos</option>
+          <option value="cft" ${ex.unit==='cft'?'selected':''}>cft</option>
+        </select></div>
+        <div style="display:flex;gap:4px">
+          <input type="number" value="${ex.rate}" placeholder="Rate PKR" onchange="updateWallExtra('${r.id}',${i},'${ex.id}','rate',this.value)">
+          <button class="icon-btn" onclick="removeWallExtra('${r.id}',${i},'${ex.id}')">✕</button>
+        </div>
+      </div>`).join('')}
+      <button class="btn ghost" style="padding:6px 10px;font-size:10.5px;width:100%" onclick="addWallExtra('${r.id}',${i})">+ Add Extra Item to this Wall</button>
     </div>`;
   }).join('');
 
+  if (showGray) {
+    return `
+    <div class="room-card" style="border-left-color:${stageColor}">
+      <div class="top">
+        <input type="text" value="${r.name}" onchange="updateRoom('${r.id}','name',this.value)">
+        <button class="icon-btn" onclick="removeRoom('${r.id}')">✕ Remove</button>
+      </div>
+      <span class="badge" style="background:${stageColor};color:#fff">🧱 GRAY STRUCTURE ROOM</span>
+      <div class="grid g3" style="margin-top:10px">
+        <div class="field"><label>Floor Area (sqft)</label><input type="number" value="${r.floorArea}" onchange="updateRoom('${r.id}','floorArea',this.value)"></div>
+        <div class="field"><label>Wall Thickness (in)</label><input type="number" value="${r.thickness}" onchange="updateRoom('${r.id}','thickness',this.value)"></div>
+      </div>
+      <div class="checkrow"><input type="checkbox" ${r.slabInclude?'checked':''} onchange="updateRoom('${r.id}','slabInclude',this.checked)"><label style="margin:0">Include RCC Slab / Roof</label>${r.slabInclude?rateBadgeHTML('slab'):''}</div>
+      <div class="checkrow"><input type="checkbox" ${r.floorbaseInclude?'checked':''} onchange="updateRoom('${r.id}','floorbaseInclude',this.checked)"><label style="margin:0">Include Floor Base / Grouting</label>${r.floorbaseInclude?rateBadgeHTML('floorbase'):''}</div>
+      <div class="section-label" style="margin-top:12px">4 Walls — length, height, brick + plaster</div>
+      <div class="wall-grid">${wallsHTML}</div>
+    </div>`;
+  }
+
   return `
-  <div class="room-card">
+  <div class="room-card" style="border-left-color:${stageColor}">
     <div class="top">
       <input type="text" value="${r.name}" onchange="updateRoom('${r.id}','name',this.value)">
       <button class="icon-btn" onclick="removeRoom('${r.id}')">✕ Remove</button>
     </div>
-    <div class="grid g3">
+    <span class="badge" style="background:${stageColor};color:#fff">🛋 INTERIOR ROOM</span>
+    <div class="grid g3" style="margin-top:10px">
       <div class="field"><label>Floor Area (sqft)</label><input type="number" value="${r.floorArea}" onchange="updateRoom('${r.id}','floorArea',this.value)"></div>
-      <div class="field"><label>Wall Thickness (in)</label><input type="number" value="${r.thickness}" onchange="updateRoom('${r.id}','thickness',this.value)"></div>
-      <div class="field"><label>Electrical Points</label><input type="number" value="${r.electricalPoints}" onchange="updateRoom('${r.id}','electricalPoints',this.value)"></div>
+      <div class="field"><label>Electrical Points</label><input type="number" value="${r.electricalPoints}" onchange="updateRoom('${r.id}','electricalPoints',this.value)">${r.electricalPoints>0?rateBadgeHTML('electrical'):''}</div>
     </div>
     <div class="grid">
-      <div class="field"><label>Floor Finish</label><select onchange="updateRoom('${r.id}','floorFinish',this.value)">${floorOpts}</select></div>
-      <div class="field"><label>Ceiling</label><select onchange="updateRoom('${r.id}','ceilingFinish',this.value)">${ceilOpts}</select></div>
+      <div class="field"><label>Floor Finish</label><select onchange="updateRoom('${r.id}','floorFinish',this.value)">${floorOpts}</select>${floorFinishRateHTML(r.floorFinish)}</div>
+      <div class="field"><label>Ceiling</label><select onchange="updateRoom('${r.id}','ceilingFinish',this.value)">${ceilOpts}</select>${ceilFinishRateHTML(r.ceilingFinish)}</div>
     </div>
     ${(r.floorFinish === 'custom' || r.ceilingFinish === 'custom') ? `
     <div class="grid">
       ${r.floorFinish === 'custom' ? `<div class="field"><label>Custom Floor Finish Name</label><input type="text" value="${r.customFloorName||''}" placeholder="e.g. Terrazzo" onchange="updateRoom('${r.id}','customFloorName',this.value)"></div><div class="field"><label>Floor Rate (PKR/sft)</label><input type="number" value="${r.customFloorRate||''}" placeholder="0" onchange="updateRoom('${r.id}','customFloorRate',this.value)"></div>` : ''}
       ${r.ceilingFinish === 'custom' ? `<div class="field"><label>Custom Ceiling Finish Name</label><input type="text" value="${r.customCeilName||''}" placeholder="e.g. Wood Slat Ceiling" onchange="updateRoom('${r.id}','customCeilName',this.value)"></div><div class="field"><label>Ceiling Rate (PKR/sft)</label><input type="number" value="${r.customCeilRate||''}" placeholder="0" onchange="updateRoom('${r.id}','customCeilRate',this.value)"></div>` : ''}
     </div>` : ''}
-    <div class="checkrow"><input type="checkbox" ${r.slabInclude?'checked':''} onchange="updateRoom('${r.id}','slabInclude',this.checked)"><label style="margin:0">Include RCC Slab / Roof</label></div>
-    <div class="checkrow"><input type="checkbox" ${r.floorbaseInclude?'checked':''} onchange="updateRoom('${r.id}','floorbaseInclude',this.checked)"><label style="margin:0">Include Floor Base / Grouting</label></div>
-    <div class="checkrow"><input type="checkbox" ${r.skirtingInclude?'checked':''} onchange="updateRoom('${r.id}','skirtingInclude',this.checked)"><label style="margin:0">Include Skirting</label></div>
-    <div class="field" style="margin-top:6px"><label>Furniture Wood Work (rft, optional — wardrobe/cabinets)</label><input type="number" value="${r.furnitureWood}" onchange="updateRoom('${r.id}','furnitureWood',this.value)"></div>
-    <div class="section-label" style="margin-top:12px">4 Walls — choose any finish for each wall</div>
+    <div class="checkrow"><input type="checkbox" ${r.skirtingInclude?'checked':''} onchange="updateRoom('${r.id}','skirtingInclude',this.checked)"><label style="margin:0">Include Skirting</label>${r.skirtingInclude?rateBadgeHTML('skirting'):''}</div>
+    <div class="field" style="margin-top:6px"><label>Furniture Wood Work (rft, optional — wardrobe/cabinets)</label><input type="number" value="${r.furnitureWood}" onchange="updateRoom('${r.id}','furnitureWood',this.value)">${r.furnitureWood>0?rateBadgeHTML('woodwork'):''}</div>
+    <div class="section-label" style="margin-top:12px">4 Walls — finish for each wall</div>
     <div class="wall-grid">${wallsHTML}</div>
   </div>`;
 }
@@ -720,7 +882,7 @@ function updateRoom(id, field, val) {
   if (['slabInclude','floorbaseInclude','skirtingInclude'].includes(field)) val = !!val;
   r[field] = val;
   saveToStorage();
-  if (field === 'floorFinish' || field === 'ceilingFinish') renderRooms();
+  if (field === 'floorFinish' || field === 'ceilingFinish' || field === 'stage') renderRooms();
 }
 function updateWall(roomId, idx, field, val) {
   const r = findRoom(roomId);
@@ -731,55 +893,87 @@ function updateWall(roomId, idx, field, val) {
   saveToStorage();
   if (field === 'finish') renderRooms();
 }
+function addWallExtra(roomId, idx) {
+  const r = findRoom(roomId);
+  if (!r) return;
+  if (!r.walls[idx].extras) r.walls[idx].extras = [];
+  r.walls[idx].extras.push({ id: 'x' + Date.now() + Math.random().toString(36).slice(2, 6), name: '', qty: 0, unit: 'sft', rate: 0 });
+  saveToStorage();
+  renderRooms();
+}
+function updateWallExtra(roomId, idx, extraId, field, val) {
+  const r = findRoom(roomId);
+  if (!r) return;
+  const ex = (r.walls[idx].extras || []).find(e => e.id === extraId);
+  if (!ex) return;
+  if (['qty','rate'].includes(field)) val = parseFloat(val) || 0;
+  ex[field] = val;
+  saveToStorage();
+}
+function removeWallExtra(roomId, idx, extraId) {
+  const r = findRoom(roomId);
+  if (!r) return;
+  r.walls[idx].extras = (r.walls[idx].extras || []).filter(e => e.id !== extraId);
+  saveToStorage();
+  renderRooms();
+}
 
 // ---------- CALCULATION ----------
 function calcBOQ() {
   const totals = {};
   Object.keys(state.rates).forEach(k => totals[k] = { qty: 0, ...state.rates[k] });
   const customTotals = {};
-  function addCustom(name, qty, rate, group) {
-    if (!name || !(qty > 0)) return;
+  function addCustom(name, qty, rate, group, unit) {
+    if (!name || !name.trim()) return;
     const key = 'custom_' + name.trim().toLowerCase();
-    if (!customTotals[key]) customTotals[key] = { name: name.trim(), qty: 0, unit: 'sft', rate: rate || 0, group };
-    customTotals[key].qty += qty;
+    if (!customTotals[key]) customTotals[key] = { name: name.trim(), qty: 0, unit: unit || 'sft', rate: rate || 0, group };
+    customTotals[key].qty += (qty || 0);
     if (rate) customTotals[key].rate = rate;
   }
+  const finishKeyMap = WALL_FINISH_RATE_KEY, floorKeyMap = FLOOR_FINISH_RATE_KEY, ceilKeyMap = CEIL_FINISH_RATE_KEY;
 
   currentProject().rooms.forEach(r => {
+    const stage = r.stage || 'both';
+    const includeGrayItems = stage === 'both' || stage === 'gray';
+    const includeInteriorItems = stage === 'both' || stage === 'interior';
     const thkFt = r.thickness / 12;
     const perimeter = r.walls.reduce((s, w) => s + w.length, 0);
 
     r.walls.forEach(w => {
       const area = Math.max((w.length * w.height) - w.opening, 0);
-      if (w.includeGray) {
+      if (includeGrayItems && w.includeGray) {
         totals.brick.qty += area * thkFt;
         totals.plaster.qty += area;
       }
-      const finishKeyMap = { paint:'paint', texture:'texture', glass:'glass', wood:'wood', wallpaper:'wallpaper', tile:'tile', pop:'pop' };
-      const fk = finishKeyMap[w.finish];
-      if (fk) totals[fk].qty += area;
-      if (w.finish === 'custom') addCustom(w.customFinishName, area, w.customFinishRate, 'wall');
+      if (includeInteriorItems) {
+        const fk = finishKeyMap[w.finish];
+        if (fk) totals[fk].qty += area;
+        if (w.finish === 'custom') addCustom(w.customFinishName, area, w.customFinishRate, 'wall');
+      }
+      (w.extras || []).forEach(ex => addCustom(ex.name, ex.qty, ex.rate, includeGrayItems ? 'wall-gray' : 'wall-interior', ex.unit));
     });
 
-    if (r.slabInclude) totals.slab.qty += r.floorArea;
-    if (r.floorbaseInclude) totals.floorbase.qty += r.floorArea;
+    if (includeGrayItems) {
+      if (r.slabInclude) totals.slab.qty += r.floorArea;
+      if (r.floorbaseInclude) totals.floorbase.qty += r.floorArea;
+    }
 
-    const floorKeyMap = { tile:'floortile', marble:'marble', woodfloor:'woodfloor', vinyl:'vinyl', epoxy:'epoxy' };
-    const ffk = floorKeyMap[r.floorFinish];
-    if (ffk) totals[ffk].qty += r.floorArea;
-    if (r.floorFinish === 'custom') addCustom(r.customFloorName, r.floorArea, r.customFloorRate, 'floor');
+    if (includeInteriorItems) {
+      const ffk = floorKeyMap[r.floorFinish];
+      if (ffk) totals[ffk].qty += r.floorArea;
+      if (r.floorFinish === 'custom') addCustom(r.customFloorName, r.floorArea, r.customFloorRate, 'floor');
 
-    const ceilKeyMap = { gypsum:'gypsum', pop:'popceil', paint:'ceilpaint' };
-    const cfk = ceilKeyMap[r.ceilingFinish];
-    if (cfk) totals[cfk].qty += r.floorArea;
-    if (r.ceilingFinish === 'custom') addCustom(r.customCeilName, r.floorArea, r.customCeilRate, 'ceiling');
+      const cfk = ceilKeyMap[r.ceilingFinish];
+      if (cfk) totals[cfk].qty += r.floorArea;
+      if (r.ceilingFinish === 'custom') addCustom(r.customCeilName, r.floorArea, r.customCeilRate, 'ceiling');
 
-    if (r.skirtingInclude) totals.skirting.qty += perimeter;
-    if (r.furnitureWood > 0) totals.woodwork.qty += r.furnitureWood;
-    if (r.electricalPoints > 0) totals.electrical.qty += r.electricalPoints;
+      if (r.skirtingInclude) totals.skirting.qty += perimeter;
+      if (r.furnitureWood > 0) totals.woodwork.qty += r.furnitureWood;
+      if (r.electricalPoints > 0) totals.electrical.qty += r.electricalPoints;
+    }
   });
 
-  return Object.assign(totals, customTotals);
+  return { standard: totals, custom: customTotals };
 }
 
 function renderLetterhead() {
@@ -803,45 +997,113 @@ function renderLetterhead() {
   `;
 }
 
+function boqSectionHTML(title, rows) {
+  if (rows.length === 0) return { html: '', subtotal: 0 };
+  let subtotal = 0;
+  let html = `<div class="section-label">${title}</div><div class="table-wrap"><table><tr><th>Item</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">Amount (PKR)</th></tr>`;
+  rows.forEach(t => {
+    const amount = t.qty * t.rate;
+    subtotal += amount;
+    html += `<tr><td>${t.name}</td><td class="num">${t.qty.toFixed(1)}</td><td>${t.unit}</td><td class="num">${t.rate.toLocaleString()}</td><td class="num">${amount.toLocaleString(undefined,{maximumFractionDigits:0})}</td></tr>`;
+  });
+  html += `</table></div>`;
+  html += `<div class="totals" style="font-weight:700"><span>${title} Subtotal</span><span>PKR ${subtotal.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>`;
+  return { html, subtotal };
+}
+
+let boqView = 'all';
+const BOQ_VIEW_LABELS = { all: 'All', gray: 'Gray Structure', interior: 'Interior', custom: 'Custom Items' };
+function switchBoqView(view) {
+  boqView = view;
+  document.querySelectorAll('.boq-subtab').forEach(b => b.classList.toggle('active', b.dataset.boq === view));
+  const lbl = document.getElementById('exportViewLabel');
+  if (lbl) lbl.textContent = BOQ_VIEW_LABELS[view] || 'All';
+  renderBOQ();
+}
+
 function renderBOQ() {
   renderLetterhead();
   if (currentProject().rooms.length === 0) {
     document.getElementById('boqOutput').innerHTML = '<div class="empty">Add rooms first — the BOQ will auto-generate here.</div>';
     return;
   }
-  const totals = calcBOQ();
-  let grand = 0;
-  const groupLabels = { gray: 'GRAY STRUCTURE', wall: 'WALL FINISHES', floor: 'FLOOR FINISHES', ceiling: 'CEILING', other: 'OTHER ITEMS' };
-  let html = `<div class="table-wrap"><table><tr><th>Item</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">Amount (PKR)</th></tr>`;
+  const { standard, custom } = calcBOQ();
 
-  ['gray','wall','floor','ceiling','other'].forEach(group => {
-    const rows = Object.values(totals).filter(t => t.group === group && t.qty > 0);
-    if (rows.length === 0) return;
-    html += `<tr><td colspan="5" style="font-weight:800;color:var(--accent);background:var(--accent-soft);letter-spacing:.4px;text-transform:uppercase;font-size:11px">${groupLabels[group]}</td></tr>`;
-    rows.forEach(t => {
-      const amount = t.qty * t.rate;
-      grand += amount;
-      html += `<tr><td>${t.name}</td><td class="num">${t.qty.toFixed(1)}</td><td>${t.unit}</td><td class="num">${t.rate.toLocaleString()}</td><td class="num">${amount.toLocaleString(undefined,{maximumFractionDigits:0})}</td></tr>`;
-    });
-  });
-  html += `</table></div>`;
-  html += `<div class="totals grand"><span>Grand Total</span><span>PKR ${grand.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>`;
+  const grayRows = Object.values(standard).filter(t => t.group === 'gray' && t.qty > 0);
+  const interiorRows = Object.values(standard).filter(t => t.group !== 'gray' && t.qty > 0);
+  const customRows = Object.values(custom);
+
+  const gray = boqSectionHTML('GRAY STRUCTURE BOQ', grayRows);
+  const interior = boqSectionHTML('INTERIOR BOQ', interiorRows);
+  const customSec = boqSectionHTML('CUSTOM ITEMS BOQ', customRows);
+
+  let html = '';
+  let grand = 0;
+
+  if (boqView === 'gray') {
+    html += gray.html || `<div class="section-label">GRAY STRUCTURE BOQ</div><div class="empty">No gray structure items yet.</div>`;
+    grand = gray.subtotal;
+  } else if (boqView === 'interior') {
+    html += interior.html || `<div class="section-label">INTERIOR BOQ</div><div class="empty">No interior items yet.</div>`;
+    grand = interior.subtotal;
+  } else if (boqView === 'custom') {
+    html += customSec.html || `<div class="section-label">CUSTOM ITEMS BOQ</div><div class="empty">No custom items yet.</div>`;
+    grand = customSec.subtotal;
+  } else {
+    if (gray.html) html += gray.html; else html += `<div class="section-label">GRAY STRUCTURE BOQ</div><div class="empty">No gray structure items yet.</div>`;
+    if (interior.html) html += interior.html; else html += `<div class="section-label">INTERIOR BOQ</div><div class="empty">No interior items yet.</div>`;
+    if (customSec.html) html += customSec.html;
+    grand = gray.subtotal + interior.subtotal + customSec.subtotal;
+  }
+
+  html += `<div class="totals grand"><span>${boqView === 'all' ? 'Grand Total' : 'Total'}</span><span>PKR ${grand.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>`;
   document.getElementById('boqOutput').innerHTML = html;
+}
+
+function csvSection(csv, title, rows) {
+  let subtotal = 0;
+  if (rows.length === 0) return { csv, subtotal };
+  csv += `"${title}"\n`;
+  rows.forEach(t => {
+    const amount = t.qty * t.rate;
+    subtotal += amount;
+    csv += `"${t.name}",${t.qty.toFixed(2)},${t.unit},${t.rate},${amount.toFixed(0)}\n`;
+  });
+  csv += `,,,"${title} Subtotal",${subtotal.toFixed(0)}\n\n`;
+  return { csv, subtotal };
 }
 
 function exportCSV() {
   if (currentProject().rooms.length === 0) { alert('Add rooms first'); return; }
-  const totals = calcBOQ();
+  const { standard, custom } = calcBOQ();
+  const grayRows = Object.values(standard).filter(t => t.group === 'gray' && t.qty > 0);
+  const interiorRows = Object.values(standard).filter(t => t.group !== 'gray' && t.qty > 0);
+  const customRows = Object.values(custom);
+
+  const baseName = currentProject().ref || 'BOQ';
   let csv = 'Item,Quantity,Unit,Rate,Amount\n';
   let grand = 0;
-  Object.values(totals).forEach(t => {
-    if (t.qty <= 0) return;
-    const amount = t.qty * t.rate;
-    grand += amount;
-    csv += `"${t.name}",${t.qty.toFixed(2)},${t.unit},${t.rate},${amount.toFixed(0)}\n`;
-  });
-  csv += `,,,Grand Total,${grand.toFixed(0)}\n`;
-  downloadBlob(csv, 'text/csv', (currentProject().ref || 'BOQ') + '.csv');
+  let r;
+  let suffix = '';
+
+  if (boqView === 'gray') {
+    r = csvSection(csv, 'GRAY STRUCTURE BOQ', grayRows); csv = r.csv; grand += r.subtotal;
+    suffix = '-GrayStructure';
+  } else if (boqView === 'interior') {
+    r = csvSection(csv, 'INTERIOR BOQ', interiorRows); csv = r.csv; grand += r.subtotal;
+    suffix = '-Interior';
+  } else if (boqView === 'custom') {
+    r = csvSection(csv, 'CUSTOM ITEMS BOQ', customRows); csv = r.csv; grand += r.subtotal;
+    suffix = '-CustomItems';
+  } else {
+    r = csvSection(csv, 'GRAY STRUCTURE BOQ', grayRows); csv = r.csv; grand += r.subtotal;
+    r = csvSection(csv, 'INTERIOR BOQ', interiorRows); csv = r.csv; grand += r.subtotal;
+    r = csvSection(csv, 'CUSTOM ITEMS BOQ', customRows); csv = r.csv; grand += r.subtotal;
+    suffix = '-Combined';
+  }
+
+  csv += `,,,${boqView === 'all' ? 'Grand Total' : 'Total'},${grand.toFixed(0)}\n`;
+  downloadBlob(csv, 'text/csv', baseName + suffix + '.csv');
 }
 
 function downloadBlob(content, type, filename) {
